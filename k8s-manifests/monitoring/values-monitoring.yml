@@ -54,18 +54,23 @@ additionalPrometheusRulesMap:
       - name: custom.kubernetes.apps
         rules:
           - alert: kubepodCrashLoopingFast
-            expr: max_overtime(kube_pod_container_status_waiting_reason{reason="CrashLoopBackOff"}[5m]) >= 1
+            expr: |
+              max_over_time(
+                kube_pod_container_status_waiting_reason{reason="CrashLoopBackOff"}[5m]
+              ) >= 1
             for: 10s
             labels:
               severity: warning
             annotations:
-              summary: "High Memory Usage Detected"
-              description: "Pod {{ $labels.namespace }}/{{ $labels.pod }} is in CrashLoopBackOff state for more than 30 seconds."
-          - alert: kubepodCrashLooping
-            expr: max_overtime(kube_pod_container_status_waiting_reason{reason="OOMKilled"}) == 1
+              summary: "Pod CrashLoopBackOff Detected"
+              description: "Pod {{ $labels.namespace }}/{{ $labels.pod }} is in CrashLoopBackOff state for more than 10 seconds."
+
+          - alert: PodOOMKilled
+            expr: |
+              kube_pod_container_status_last_terminated_reason{reason="OOMKilled"} == 1
             for: 10s
             labels:
               severity: critical
             annotations:
-              summary: "Pod CrashLoopBackOff Alert"
-              description: "Pod {{ $labels.namespace }}/{{ $labels.pod }} container {{ $labels.container }} was OOMKilled"
+              summary: "Pod OOMKilled"
+              description: "Container {{ $labels.container }} in pod {{ $labels.namespace }}/{{ $labels.pod }} was terminated because of OOMKilled."
