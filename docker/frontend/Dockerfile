@@ -11,7 +11,7 @@ RUN npm ci
 COPY frontend/ .
 
 
-ARG VITE_API_URL=http://10.0.8.255:30080/api
+ARG VITE_API_URL=http://api.bank.kinar.in/api
 
 RUN npm run build
 
