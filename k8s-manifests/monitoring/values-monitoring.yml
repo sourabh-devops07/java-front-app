@@ -1,76 +1,109 @@
 prometheus:
   prometheusSpec:
     retention: 15d
-    nodeSelector:
+    nodeselector:
       kubernetes.io/hostname: monitoring-node
+      role: monitoring
     storageSpec:
       volumeClaimTemplate:
         spec:
           storageClassName: local-path
-          accessModes:
-            - ReadWriteOnce
+          accessModes: ["ReadWriteOnce"]
           resources:
             requests:
               storage: 20Gi
+
     resources:
       requests:
         memory: 512Mi
         cpu: 250m
       limits:
         memory: 1Gi
-        cpu: 500m
+        cpu: 500m  
 
 grafana:
   nodeSelector:
     kubernetes.io/hostname: monitoring-node
+    role: monitoring
   persistence:
     enabled: true
     storageClassName: local-path
-    accessModes:
-      - ReadWriteOnce
-    size: 5Gi
-  adminPassword: "StrongPassword123!"
+    size: 5Gi        
+  adminpassword: "StrongPassword123"
   service:
     type: NodePort
     nodePort: 30090
-
+    
 alertmanager:
   alertmanagerSpec:
-    nodeSelector:
+    nodeSelector: 
       kubernetes.io/hostname: monitoring-node
+      role: monitoring
     storage:
       volumeClaimTemplate:
         spec:
           storageClassName: local-path
-          accessModes:
-            - ReadWriteOnce
+          accessModes: ["ReadWriteOnce"]
           resources:
             requests:
               storage: 2Gi
 
-additionalPrometheusRulesMap:
-  custom-crashloop-rules:
+
+  service:
+    type: NodePort
+    nodePort: 30093
+  config:
+    global:
+      resolve_timeout: 5m
+    route:
+      receiver: 'discord-notifications'
+      group_by: ['alertname']
+      group_wait: 30s
+      repeat_interval: 5m
+      group_interval: 4h
+      routes:
+        - receiver: 'null'
+          matchers:
+            - alertname =~ "Watchdog|Kube.*Unreachable|Alertmanager.*Failed.*|etcd.*"
+    receivers:
+      - name: 'null'
+      - name: 'discord-notifications'
+        discord_configs:
+          - webhook_url: 'https://discord.com/api/webhooks/1533798479082557460/nqIZumJnWom9VfCsD7r6i4IfsMe_Oyf7dLwJyYKTmfeKOVZIAPfRx6vgRyIc8YTqUy8q'
+
+
+additionalPrometheusRuleMap:
+  custom-rules:
     groups:
-      - name: custom.kubernetes.apps
+      - name: custom-kubernetes-apps
         rules:
-          - alert: kubepodCrashLoopingFast
-            expr: |
-              max_over_time(
-                kube_pod_container_status_waiting_reason{reason="CrashLoopBackOff"}[5m]
-              ) >= 1
+          - alert: kubePodCrashLoopingFast
+            expr: max_over_time(kube_pod_container_status_waiting_reason{reason="CrashLoopBackOff"}[5m]) >= 1
+            for: 30s
+            labels:
+              severity: warning
+            annotations:
+              description: "Pod {{$labels.namespace}}/{{$labels.pod}} is in CrashLoopBackOff state for more than 30 seconds."
+            
+
+          - alert: kubePodCrashLoopingFast
+            expr: max_over_time(kube_pod_container_status_last_terminated_reason{reason="OOMKilled"}) >= 1
             for: 10s
             labels:
               severity: warning
             annotations:
-              summary: "Pod CrashLoopBackOff Detected"
-              description: "Pod {{ $labels.namespace }}/{{ $labels.pod }} is in CrashLoopBackOff state for more than 10 seconds."
+              description: "Pod {{$labels.namespace}}/{{$labels.pod}} is in OOMKilled state for more than 10 seconds."
+            
 
-          - alert: PodOOMKilled
-            expr: |
-              kube_pod_container_status_last_terminated_reason{reason="OOMKilled"} == 1
+          - alert: kubePodCrashLoopingFast
+            expr: max_over_time(kube_pod_container_status_last_terminated_reason{reason="OOMKilled"}) == 1
             for: 10s
             labels:
-              severity: critical
+              severity: warning
             annotations:
-              summary: "Pod OOMKilled"
-              description: "Container {{ $labels.container }} in pod {{ $labels.namespace }}/{{ $labels.pod }} was terminated because of OOMKilled."
+              description: "Pod {{$labels.namespace}}/{{$labels.pod}} container {{$labels.container}} was OOMKilled in the last 10 seconds."
+
+          
+
+
+            

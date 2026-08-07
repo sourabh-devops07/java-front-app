@@ -5,27 +5,31 @@ metadata:
   namespace: banking
   annotations:
     nginx.ingress.kubernetes.io/rewrite-target: /
-
+    nginx.ingress.kubernetes.io/enable-cors: "true"
+    nginx.ingress.kubernetes.io/cors-allow-origin: "http://bank.kinar.in"
+    nginx.ingress.kubernetes.io/cors-allow-methods: "GET, POST, PUT, DELETE, OPTIONS"
+    nginx.ingress.kubernetes.io/cors-allow-headers: "Content-Type, Authorization"
+    nginx.ingress.kubernetes.io/cors-allow-credentials: "false"
 spec:
+  ingressClassName: nginx
   rules:
     - host: bank.kinar.in
       http:
         paths:
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: frontend-svc
-                port:
-                  number: 80
-
+        - path: /
+          pathType: Prefix
+          backend:
+            service:
+              name: frontend-svc
+              port:
+                number: 80
     - host: api.bank.kinar.in
       http:
         paths:
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: backend-svc
-                port:
-                  number: 8080
+        - path: /
+          pathType: Prefix
+          backend:
+            service:
+              name: backend-svc
+              port:
+                number: 8080

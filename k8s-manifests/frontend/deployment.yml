@@ -1,6 +1,6 @@
 apiVersion: apps/v1
 kind: Deployment
-metadata: 
+metadata:
   name: frontend
   namespace: banking
 
@@ -18,7 +18,6 @@ spec:
         kubernetes.io/hostname: worker-node-1
       containers:
         - name: frontend
-          image: sourabh071/java-banking-frontend:1.0
-          imagePullPolicy: Always
+          image: sourabh071/java-fintech-frontend:1.2
           ports:
             - containerPort: 80

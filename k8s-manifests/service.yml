@@ -1,14 +1,13 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: backend-svc
+  name: postgres-svc
   namespace: banking
+
 spec:
+  clusterIP: None
   selector:
-    app: backend
-  type: NodePort
+    app: postgres
   ports:
-    - port: 8080
-      targetPort: 8080
-      nodePort: 30080
+    - port: 5432
       
